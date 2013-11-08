@@ -28,7 +28,15 @@ Write-Host "All the links from " $destinationCS
 Write-Host "will be overwritten with the ones from " $originCS
 $confirm = Read-Host "Are you sure? (y/n): "
 
-if ($confirm -eq "y" -and ([adsi]::Exists("LDAP://"+$originCS) -and [adsi]::Exists("LDAP://"+$destinationCS))) {
+if ($confirm -eq "y") {
+    if (-Not ([adsi]::Exists("LDAP://"+$originCS))) {
+        Write-Warning "Origin OU does not exist - No changes made"
+        Break
+    }
+    if (-Not ([adsi]::Exists("LDAP://"+$destinationCS))) {
+        Write-Warning "Destination OU does not exist - No changes made"
+        Break
+    }
     $destGPOs = Get-GPInheritance -target $destinationCS
     ForEach($gpo in $destGPOs.GpoLinks) {
         $temp = Remove-GPLink -guid $gpo.GpoId -target $destinationCS
@@ -40,6 +48,8 @@ if ($confirm -eq "y" -and ([adsi]::Exists("LDAP://"+$originCS) -and [adsi]::Exis
         $temp = New-GPLink -guid $gpo.GpoId -target $destinationCS
         $newLinks++
     }
-    Write-Host "$newLinks new links created in " $destinationCS
+    Write-Host "Success: $newLinks new links created in " $destinationCS
     Write-Host ""
+} else {
+    Write-Host "No changes done"
 }
